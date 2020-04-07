@@ -1,0 +1,35 @@
+version: '3.4'
+
+services:
+  nginx:
+    image: nginx:1.15-alpine
+    restart: unless-stopped
+    volumes:
+      -  ${NGINX_CONF_PATH}:/etc/nginx/conf.d  # nginx configuration file 
+      -  ${CERTIFICATES_PATH}:/etc/letsencrypt 
+    ports:
+      - "80:80"
+      - "443:443"
+        #network_mode: bridge
+    env_file:
+      - .env
+    networks: 
+      - ngnix_certs_default
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ${CERTIFICATES_PATH}:/etc/letsencrypt
+        #network_mode: bridge
+    env_file:
+      - .env
+    networks:
+      - ngnix_certs_default 
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+networks:
+    #default:
+    # driver: bridge
+  ngnix_certs_default:
